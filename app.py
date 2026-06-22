@@ -40,9 +40,10 @@ def calculate_prediction_error(step, r2_score):
 # -----------------------------------------------------------------------------
 def run_forecast(start_temps, future_outdoor_temps, dates_list):
     horizon = len(future_outdoor_temps)
-    # Hier fehlten zuvor die eckigen Klammern
-    predictions = {gasse: for gasse in PARAMS.keys()}
-    uncertainties = {gasse: for gasse in PARAMS.keys()}
+    
+    # Sichere Methode: list() statt fehleranfälliger Klammern
+    predictions = {gasse: list() for gasse in PARAMS.keys()}
+    uncertainties = {gasse: list() for gasse in PARAMS.keys()}
     
     current_state = start_temps.copy()
     
@@ -94,17 +95,19 @@ with st.sidebar:
 
 if 'input_df' not in st.session_state:
     base_date = datetime.today()
-    # Hier fehlten zuvor ebenfalls die Klammern
-    dates =
-    default_outdoor = [max(15.0, 32.0 - (i * 0.7)) for i in range(14)]
+    
+    # Sichere Generatoren statt eckiger Klammern
+    default_outdoor = list(max(15.0, 32.0 - (i * 0.7)) for i in range(14))
+    date_strings = list((base_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, 15))
+    weekday_strings = list((base_date + timedelta(days=i)).strftime("%A") for i in range(1, 15))
     
     st.session_state.input_df = pd.DataFrame({
-        'Datum':,
-        'Wochentag': [(base_date + timedelta(days=i)).strftime("%A") for i in range(1, 15)],
+        'Datum': date_strings,
+        'Wochentag': weekday_strings,
         'Prognose Außen (°C)': default_outdoor
     })
 
-col1, col2 = st.columns([1.2, 2])
+col1, col2 = st.columns((1.2, 2))
 
 with col1:
     st.subheader("Wetterprognose (Manuelle Eingabe)")
@@ -123,7 +126,7 @@ with col1:
             "Wochentag": st.column_config.TextColumn("Wochentag", disabled=True),
             "Datum": st.column_config.TextColumn("Datum", disabled=True)
         },
-        disabled=,
+        disabled=("Datum", "Wochentag"),
         hide_index=True,
         use_container_width=True
     )
@@ -185,15 +188,14 @@ with col2:
 st.divider()
 st.subheader("Operative Analyse und Risiko-Management-Matrix")
 
-# Auch hier fehlten die Klammern
-warnings_generated =
-results_table =
+warnings_generated = list()
+results_table = list()
 
 for idx, date in enumerate(dates_list):
     weekday = edited_df.iloc[idx]
     daily_row = {"Datum": date, "Wochentag": weekday[:2], "Außen": f"{future_outdoor[idx]:.1f} °C"}
     max_gasse_temp = 0
-    kritische_gassen =
+    kritische_gassen = list()
     
     for gasse in PARAMS.keys():
         temp = predictions[gasse][idx]
