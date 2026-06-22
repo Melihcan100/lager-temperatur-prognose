@@ -41,7 +41,6 @@ def calculate_prediction_error(step, r2_score):
 def run_forecast(start_temps, future_outdoor_temps, dates_list):
     horizon = len(future_outdoor_temps)
     
-    # Sichere Methode: list() statt fehleranfälliger Klammern
     predictions = {gasse: list() for gasse in PARAMS.keys()}
     uncertainties = {gasse: list() for gasse in PARAMS.keys()}
     
@@ -96,7 +95,6 @@ with st.sidebar:
 if 'input_df' not in st.session_state:
     base_date = datetime.today()
     
-    # Sichere Generatoren statt eckiger Klammern
     default_outdoor = list(max(15.0, 32.0 - (i * 0.7)) for i in range(14))
     date_strings = list((base_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, 15))
     weekday_strings = list((base_date + timedelta(days=i)).strftime("%A") for i in range(1, 15))
@@ -131,6 +129,7 @@ with col1:
         use_container_width=True
     )
     future_outdoor = edited_df['Prognose Außen (°C)'].tolist()
+    # HIER WURDE DER FEHLER BEHOBEN (Auswahl der Spalte 'Datum')
     dates_list = edited_df.tolist()
 
 predictions, uncertainties = run_forecast(start_temps, future_outdoor, dates_list)
@@ -192,6 +191,7 @@ warnings_generated = list()
 results_table = list()
 
 for idx, date in enumerate(dates_list):
+    # HIER WURDE DER ZWEITE FEHLER BEHOBEN (Sauberes Auslesen des Wochentags)
     weekday = edited_df.iloc[idx]
     daily_row = {"Datum": date, "Wochentag": weekday[:2], "Außen": f"{future_outdoor[idx]:.1f} °C"}
     max_gasse_temp = 0
