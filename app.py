@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 # -----------------------------------------------------------------------------
 # 1. KONFIGURATION UND METADATENGRUNDLAGE
 # -----------------------------------------------------------------------------
-st.set_page_config(page_title="GDP-Lagerlogistik Advanced Prediction", layout="wide")
+st.set_page_config(page_title="HSL Prognose Tool", layout="wide")
 
 PARAMS = {
     'G01': {'beta_aussen': 0.180665, 'beta_innen': 0.367569, 'konstante': 11.477976, 'r2': 0.7993, 'status': 'Risikozone (Hot-Spot)'},
@@ -71,7 +71,7 @@ with col_logo:
     st.image("hartmann_logo.png", width=160)
 
 st.markdown("""
-Dieses System validiert und prognostiziert die Innentemperaturen auf Basis des rein linearen 
+Dieses System validiert und prognostiziert die Lagertemperaturen auf Basis des rein linearen 
 autoregressiven Modells (ARX) erster Ordnung unter Berücksichtigung von thermodynamischen Gleichgewichtszuständen.
 """)
 
@@ -85,7 +85,7 @@ with st.sidebar:
     
     st.divider()
     st.header("Regulatorisches Limit")
-    max_temp_limit = st.slider("Kritische GDP-Obergrenze (°C)", 20.0, 30.0, 25.0)
+    max_temp_limit = st.slider("Kritische Obergrenze (°C)", 20.0, 30.0, 25.0)
 
 if 'input_df' not in st.session_state:
     base_date = datetime.today()
@@ -137,7 +137,7 @@ with col2:
             name=f'{gasse} ({PARAMS[gasse]["status"]})', line=dict(color=colors[gasse], width=3)
         ))
 
-    fig.add_hline(y=max_temp_limit, line_dash="dot", line_color="red", line_width=2, annotation_text="GDP-Grenze")
+    fig.add_hline(y=max_temp_limit, line_dash="dot", line_color="red", line_width=2, annotation_text="Grenze")
     fig.update_layout(hovermode="x unified", xaxis_title="Datum", yaxis_title="Innentemperatur (°C)", margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig, use_container_width=True)
 
