@@ -129,8 +129,9 @@ with col1:
         use_container_width=True
     )
     future_outdoor = edited_df['Prognose Außen (°C)'].tolist()
-    # HIER WURDE DER FEHLER BEHOBEN (Auswahl der Spalte 'Datum')
-    dates_list = edited_df.tolist()
+    
+    # KORREKTUR 1
+    dates_list = edited_df['Datum'].tolist()
 
 predictions, uncertainties = run_forecast(start_temps, future_outdoor, dates_list)
 
@@ -191,8 +192,8 @@ warnings_generated = list()
 results_table = list()
 
 for idx, date in enumerate(dates_list):
-    # HIER WURDE DER ZWEITE FEHLER BEHOBEN (Sauberes Auslesen des Wochentags)
-    weekday = edited_df.iloc[idx]
+    # KORREKTUR 2
+    weekday = edited_df['Wochentag'].iloc[idx]
     daily_row = {"Datum": date, "Wochentag": weekday[:2], "Außen": f"{future_outdoor[idx]:.1f} °C"}
     max_gasse_temp = 0
     kritische_gassen = list()
