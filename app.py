@@ -66,7 +66,7 @@ def run_forecast(start_temps, future_outdoor_temps):
 # -----------------------------------------------------------------------------
 col_title, col_logo = st.columns([5, 1])
 with col_title:
-    st.title("🌡️ Advanced Zeitreihen-Tool für GDP-Lagerlogistik")
+    st.title("🌡️ Temparatur Prognose Tool für HSL")
 with col_logo:
     st.image("hartmann_logo.png", width=160)
 
