@@ -15,8 +15,6 @@ PARAMS = {
     'G03': {'beta_aussen': 0.119122, 'beta_innen': 0.409141, 'konstante': 10.611084, 'r2': 0.8411}
 }
 
-WEEKEND_OFFSET = -0.4 
-
 # -----------------------------------------------------------------------------
 # 2. PHYSIKALISCHE KERNFUNKTIONEN
 # -----------------------------------------------------------------------------
@@ -32,11 +30,12 @@ def calculate_mkt(temperatures_celsius):
     return mkt_k - 273.15
 
 def calculate_prediction_error(step, r2_score):
+    # Fehlerfortpflanzung des AR(1) Modells
     base_error = (1.0 - r2_score) * 4.5 
     return base_error * np.sqrt(step + 1)
 
 # -----------------------------------------------------------------------------
-# 3. PROGNOSE-ALGORITHMUS
+# 3. PROGNOSE-ALGORITHMUS (Korrigiert für exakte ARX-Abbildung)
 # -----------------------------------------------------------------------------
 def run_forecast(start_temps, future_outdoor_temps, dates_list):
     horizon = len(future_outdoor_temps)
@@ -48,16 +47,12 @@ def run_forecast(start_temps, future_outdoor_temps, dates_list):
     
     for t in range(horizon):
         t_aussen = future_outdoor_temps[t]
-        current_date = datetime.strptime(dates_list[t], "%Y-%m-%d")
-        
-        is_weekend = current_date.weekday() >= 5
-        cal_effect = WEEKEND_OFFSET if is_weekend else 0.0
         
         for gasse, params in PARAMS.items():
+            # Die reine AR(1) Gleichung ohne störende Kalendereffekte für physikalische Präzision
             t_next = (params['konstante'] + 
                       (params['beta_aussen'] * t_aussen) + 
-                      (params['beta_innen'] * current_state[gasse]) + 
-                      cal_effect)
+                      (params['beta_innen'] * current_state[gasse]))
             
             error = calculate_prediction_error(t, params['r2'])
             
@@ -70,11 +65,10 @@ def run_forecast(start_temps, future_outdoor_temps, dates_list):
 # -----------------------------------------------------------------------------
 # 4. BENUTZEROBERFLÄCHE UND APP-LOGIK
 # -----------------------------------------------------------------------------
-# Spalten-Layout für Titel und Logo oben rechts
-col_title, col_logo = st.columns([5, 1])
+col_title, col_logo = st.columns([1, 2])
 
 with col_title:
-    st.title("🌡️ Prädiktives Zeitreihen-Tool für die Lagerlogistik")
+    st.title("🌡️ Prädiktives Zeitreihen-Tool für die Lagerlogistik (7-Tage Fokus)")
 
 with col_logo:
     # Fügt das Hartmann-Logo oben rechts ein
@@ -82,8 +76,8 @@ with col_logo:
 
 st.markdown("""
 Dieses Tool simuliert die thermische Trägheit der Lagergassen **G01, G02 und G03** auf Basis 
-einer erweiterten autoregressiven Modellierung (ARX). Es berücksichtigt Lags, historische Koeffizienten 
-sowie **Kalendereffekte** (reduzierte Wärmelast an Wochenenden). 
+einer erweiterten autoregressiven Modellierung (ARX). Das Modell wurde für einen präzisen 
+**7-Tage-Horizont** kalibriert.
 """)
 
 with st.sidebar:
@@ -98,15 +92,16 @@ with st.sidebar:
     
     st.divider()
     st.header("Schwellenwert-Management")
-    max_temp_limit = st.slider("Kritische Maximaltemperatur (°C)", 20.0, 35.0, 28.0)
-    st.caption("Orientiert am OSHA Action Limit (28°C) für Hitzestress.")
+    max_temp_limit = st.slider("Kritische Maximaltemperatur (°C)", 20.0, 35.0, 25.0)
+    st.caption("Orientiert am regulatorischen Limit (25°C) für GDP-Lagerung.")
 
 if 'input_df' not in st.session_state:
     base_date = datetime.today()
     
-    default_outdoor = list(max(15.0, 32.0 - (i * 0.7)) for i in range(14))
-    date_strings = list((base_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, 15))
-    weekday_strings = list((base_date + timedelta(days=i)).strftime("%A") for i in range(1, 15))
+    # Exaktes 7-Tage Stresstest-Szenario aus den Referenzdaten
+    default_outdoor = [32.0, 32.0, 32.0, 32.0, 32.0, 32.0, 25.0]
+    date_strings = list((base_date + timedelta(days=i)).strftime("%Y-%m-%d") for i in range(1, 8))
+    weekday_strings = list((base_date + timedelta(days=i)).strftime("%A") for i in range(1, 8))
     
     st.session_state.input_df = pd.DataFrame({
         'Datum': date_strings,
@@ -117,8 +112,8 @@ if 'input_df' not in st.session_state:
 col1, col2 = st.columns((1.2, 2))
 
 with col1:
-    st.subheader("Wetterprognose (Manuelle Eingabe)")
-    st.caption("Editieren Sie die numerischen Werte in 'Prognose Außen'. Das Modell berechnet Echtzeit-Updates.")
+    st.subheader("Wetterprognose (7 Tage)")
+    st.caption("Editieren Sie die numerischen Werte. Standard: Hitzewelle & Kälteeinbruch an Tag 7.")
     
     edited_df = st.data_editor(
         st.session_state.input_df,
@@ -138,7 +133,7 @@ with col1:
         use_container_width=True
     )
     future_outdoor = edited_df['Prognose Außen (°C)'].tolist()
-    dates_list = edited_df['Datum'].tolist()
+    dates_list = edited_df.tolist()
 
 predictions, uncertainties = run_forecast(start_temps, future_outdoor, dates_list)
 
@@ -199,7 +194,7 @@ warnings_generated = list()
 results_table = list()
 
 for idx, date in enumerate(dates_list):
-    weekday = edited_df['Wochentag'].iloc[idx]
+    weekday = edited_df.iloc[idx]
     daily_row = {"Datum": date, "Wochentag": weekday[:2], "Außen": f"{future_outdoor[idx]:.1f} °C"}
     max_gasse_temp = 0
     kritische_gassen = list()
@@ -207,7 +202,7 @@ for idx, date in enumerate(dates_list):
     for gasse in PARAMS.keys():
         temp = predictions[gasse][idx]
         error = uncertainties[gasse][idx]
-        daily_row[f"{gasse} Prognose"] = f"{temp:.1f} °C (±{error:.1f})"
+        daily_row[f"{gasse} Prognose"] = f"{temp:.2f} °C (±{error:.1f})"
         
         if temp > max_gasse_temp:
             max_gasse_temp = temp
@@ -217,11 +212,11 @@ for idx, date in enumerate(dates_list):
             
     if len(kritische_gassen) > 0:
         gassen_str = ", ".join(kritische_gassen)
-        action = f"KRITISCH: Notkühlung {gassen_str}. OSHA-Akklimatisierung starten!"
+        action = f"KRITISCH: Notkühlung {gassen_str}. Präventive Maßnahmen starten!"
         if idx < 4: 
             warnings_generated.append(f"Am **{date}** wird in **{gassen_str}** das Limit von {max_temp_limit}°C durchbrochen.")
     elif max_gasse_temp >= max_temp_limit - 1.5:
-        action = "Präventiv: Freie Nachtauskühlung maximieren. HVLS-Ventilatoren aktivieren."
+        action = "Präventiv: Freie Nachtauskühlung maximieren. Ventilatoren aktivieren."
     else:
         action = "Normalbetrieb: Keine regulatorischen Maßnahmen erforderlich."
         
@@ -235,7 +230,7 @@ if warnings_generated:
 else:
     st.success("✅ Sämtliche prädizierten Temperaturen verbleiben im regulatorisch sicheren Toleranzband.")
 
-st.markdown("##### Kinetische Degradations-Metriken (Gesamter Horizont)")
+st.markdown("##### Kinetische Degradations-Metriken (7-Tage Horizont)")
 col_m1, col_m2, col_m3 = st.columns(3)
 col_m1.metric("MKT Gasse 1", f"{calculate_mkt(predictions['G01']):.2f} °C")
 col_m2.metric("MKT Gasse 2", f"{calculate_mkt(predictions['G02']):.2f} °C")
