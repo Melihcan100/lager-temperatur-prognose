@@ -70,7 +70,16 @@ def run_forecast(start_temps, future_outdoor_temps, dates_list):
 # -----------------------------------------------------------------------------
 # 4. BENUTZEROBERFLÄCHE UND APP-LOGIK
 # -----------------------------------------------------------------------------
-st.title("🌡️ Prädiktives Zeitreihen-Tool für die Lagerlogistik")
+# Spalten-Layout für Titel und Logo oben rechts
+col_title, col_logo = st.columns([5, 1])
+
+with col_title:
+    st.title("🌡️ Prädiktives Zeitreihen-Tool für die Lagerlogistik")
+
+with col_logo:
+    # Fügt das Hartmann-Logo oben rechts ein
+    st.image("hartmann_logo.png", width=160)
+
 st.markdown("""
 Dieses Tool simuliert die thermische Trägheit der Lagergassen **G01, G02 und G03** auf Basis 
 einer erweiterten autoregressiven Modellierung (ARX). Es berücksichtigt Lags, historische Koeffizienten 
@@ -129,8 +138,6 @@ with col1:
         use_container_width=True
     )
     future_outdoor = edited_df['Prognose Außen (°C)'].tolist()
-    
-    # KORREKTUR 1
     dates_list = edited_df['Datum'].tolist()
 
 predictions, uncertainties = run_forecast(start_temps, future_outdoor, dates_list)
@@ -192,7 +199,6 @@ warnings_generated = list()
 results_table = list()
 
 for idx, date in enumerate(dates_list):
-    # KORREKTUR 2
     weekday = edited_df['Wochentag'].iloc[idx]
     daily_row = {"Datum": date, "Wochentag": weekday[:2], "Außen": f"{future_outdoor[idx]:.1f} °C"}
     max_gasse_temp = 0
