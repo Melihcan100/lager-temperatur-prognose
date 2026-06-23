@@ -242,3 +242,9 @@ col_m2.metric("MKT Gasse 2", f"{calculate_mkt(predictions['G02']):.2f} °C")
 col_m3.metric("MKT Gasse 3", f"{calculate_mkt(predictions['G03']):.2f} °C")
 
 st.dataframe(pd.DataFrame(results_table), use_container_width=True)
+
+# -----------------------------------------------------------------------------
+# 6. FOOTER
+# -----------------------------------------------------------------------------
+st.markdown("<br><br>", unsafe_allow_html=True)
+st.caption("© 2026 Erstellt von Melih Can Ünsal")
